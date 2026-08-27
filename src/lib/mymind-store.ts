@@ -83,7 +83,7 @@ export function useMind() {
         {
           id: crypto.randomUUID(),
           name,
-          color: PROJECT_COLORS[s.projects.length % PROJECT_COLORS.length],
+          color: PROJECT_COLORS[s.projects.length % PROJECT_COLORS.length] ?? PROJECT_COLORS[0]!,
           createdAt: new Date().toISOString(),
         },
       ],
