@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BarChart3, Brain, FolderKanban, ListChecks, Timer } from "lucide-react";
 import { useMind, badgeFor, todayKey } from "@/lib/mymind-store";
 import { ProjectsPanel } from "@/components/mymind/ProjectsPanel";
@@ -35,8 +35,20 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
+function initialTab(): TabId {
+  if (typeof window === "undefined") return "tasks";
+  const v = new URLSearchParams(window.location.search).get("view");
+  return TABS.some((t) => t.id === v) ? (v as TabId) : "tasks";
+}
+
 function MyMind() {
   const [tab, setTab] = useState<TabId>("tasks");
+
+  useEffect(() => {
+    const t = initialTab();
+    if (t !== "tasks") setTab(t);
+  }, []);
+
   const mind = useMind();
   const { state } = mind;
 
