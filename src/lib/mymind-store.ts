@@ -166,7 +166,7 @@ export function useMind() {
       ...s,
       tasks: s.tasks.map((t) =>
         t.id === id
-          ? { ...t, priority: order[(order.indexOf(t.priority ?? "normal") + 1) % order.length] }
+          ? { ...t, priority: order[(order.indexOf(t.priority ?? "normal") + 1) % order.length] ?? "normal" }
           : t,
       ),
     }));
