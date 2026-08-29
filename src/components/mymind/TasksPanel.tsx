@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
-import { Check, Trash2 } from "lucide-react";
+import { Check, Flag, Search, Trash2 } from "lucide-react";
 import type { Project, Task } from "@/lib/mymind-store";
-import { playDing } from "@/lib/mymind-store";
+import { PRIORITY_META, playDing } from "@/lib/mymind-store";
 
 type Props = {
   projects: Project[];
@@ -9,10 +9,13 @@ type Props = {
   onAdd: (title: string, projectId: string | null) => void;
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
+  onCyclePriority: (id: string) => void;
 };
 
-export function TasksPanel({ projects, tasks, onAdd, onToggle, onRemove }: Props) {
+export function TasksPanel({ projects, tasks, onAdd, onToggle, onRemove, onCyclePriority }: Props) {
   const [title, setTitle] = useState("");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<string | "all">("all");
   const [index, setIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -44,8 +47,17 @@ export function TasksPanel({ projects, tasks, onAdd, onToggle, onRemove }: Props
   };
 
   const projectOf = (id: string | null) => projects.find((p) => p.id === id);
-  const open = tasks.filter((t) => !t.done);
-  const done = tasks.filter((t) => t.done);
+  const rank = { high: 0, normal: 1, low: 2 } as const;
+  const visible = tasks
+    .filter((t) => (filter === "all" ? true : t.projectId === (filter === "none" ? null : filter)))
+    .filter((t) => t.title.toLowerCase().includes(query.trim().toLowerCase()));
+  const open = visible
+    .filter((t) => !t.done)
+    .sort((a, b) => rank[a.priority ?? "normal"] - rank[b.priority ?? "normal"]);
+  const done = visible.filter((t) => t.done);
+  const total = tasks.length;
+  const doneCount = tasks.filter((t) => t.done).length;
+  const pct = total ? Math.round((doneCount / total) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -92,6 +104,43 @@ export function TasksPanel({ projects, tasks, onAdd, onToggle, onRemove }: Props
         </div>
       </div>
 
+      <div className="glass-soft flex flex-wrap items-center gap-3 rounded-2xl p-3">
+        <div className="flex flex-1 items-center gap-2 px-2">
+          <Search className="size-4 text-muted-foreground" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="بحث في مهام اليوم…"
+            className="w-full bg-transparent py-1.5 text-sm outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {[{ id: "all", name: "الكل" }, { id: "none", name: "بدون مشروع" }, ...projects].map((o) => (
+            <button
+              key={o.id ?? "none"}
+              onClick={() => setFilter(o.id as string)}
+              className={`rounded-lg px-3 py-1 text-xs transition ${
+                filter === o.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {o.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="glass rounded-2xl p-4">
+        <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+          <span>تقدم اليوم</span>
+          <span className="tabular-nums">
+            {doneCount}/{total} — {pct}%
+          </span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-secondary">
+          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
+
       <div className="space-y-3">
         {open.map((t) => {
           const p = projectOf(t.projectId);
@@ -115,6 +164,15 @@ export function TasksPanel({ projects, tasks, onAdd, onToggle, onRemove }: Props
                   </span>
                 )}
               </div>
+              <button
+                onClick={() => onCyclePriority(t.id)}
+                aria-label="تغيير الأولوية"
+                title={`الأولوية: ${PRIORITY_META[t.priority ?? "normal"].label}`}
+                className="transition hover:opacity-80"
+                style={{ color: PRIORITY_META[t.priority ?? "normal"].color }}
+              >
+                <Flag className="size-4" />
+              </button>
               <button
                 onClick={() => onRemove(t.id)}
                 aria-label="حذف"

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 export type Project = { id: string; name: string; color: string; createdAt: string };
+export type Priority = "high" | "normal" | "low";
 export type Task = {
   id: string;
   title: string;
@@ -8,7 +9,10 @@ export type Task = {
   done: boolean;
   createdAt: string;
   day: string;
+  priority?: Priority;
 };
+export type Note = { id: string; text: string; color: string; createdAt: string; pinned?: boolean };
+export type Settings = { dailyGoalMinutes: number };
 export type CompletedTask = { id: string; title: string; projectId: string | null; day: string };
 export type PomodoroSession = { id: string; minutes: number; day: string; at: string };
 
@@ -17,6 +21,8 @@ export type MindState = {
   tasks: Task[];
   completed: CompletedTask[];
   sessions: PomodoroSession[];
+  notes: Note[];
+  settings: Settings;
   lastCleanup: string;
 };
 
@@ -32,6 +38,8 @@ export const emptyState = (): MindState => ({
   tasks: [],
   completed: [],
   sessions: [],
+  notes: [],
+  settings: { dailyGoalMinutes: 120 },
   lastCleanup: todayKey(),
 });
 
@@ -62,7 +70,13 @@ export function useMind() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
-      const parsed: MindState = raw ? { ...emptyState(), ...JSON.parse(raw) } : emptyState();
+      const base = emptyState();
+      const stored = raw ? JSON.parse(raw) : {};
+      const parsed: MindState = {
+        ...base,
+        ...stored,
+        settings: { ...base.settings, ...(stored?.settings ?? {}) },
+      };
       setState(runMidnightCleanup(parsed));
     } catch {
       setState(emptyState());
@@ -113,6 +127,7 @@ export function useMind() {
           done: false,
           createdAt: new Date().toISOString(),
           day: todayKey(),
+          priority: "normal",
         },
         ...s.tasks,
       ],
@@ -145,6 +160,78 @@ export function useMind() {
     }));
   }, []);
 
+  const cyclePriority = useCallback((id: string) => {
+    const order: Priority[] = ["normal", "high", "low"];
+    setState((s) => ({
+      ...s,
+      tasks: s.tasks.map((t) =>
+        t.id === id
+          ? { ...t, priority: order[(order.indexOf(t.priority ?? "normal") + 1) % order.length] ?? "normal" }
+          : t,
+      ),
+    }));
+  }, []);
+
+  const addNote = useCallback((text: string) => {
+    setState((s) => ({
+      ...s,
+      notes: [
+        {
+          id: crypto.randomUUID(),
+          text,
+          color: PROJECT_COLORS[s.notes.length % PROJECT_COLORS.length] ?? PROJECT_COLORS[0]!,
+          createdAt: new Date().toISOString(),
+        },
+        ...s.notes,
+      ],
+    }));
+  }, []);
+
+  const updateNote = useCallback((id: string, text: string) => {
+    setState((s) => ({ ...s, notes: s.notes.map((n) => (n.id === id ? { ...n, text } : n)) }));
+  }, []);
+
+  const togglePinNote = useCallback((id: string) => {
+    setState((s) => ({ ...s, notes: s.notes.map((n) => (n.id === id ? { ...n, pinned: !n.pinned } : n)) }));
+  }, []);
+
+  const removeNote = useCallback((id: string) => {
+    setState((s) => ({ ...s, notes: s.notes.filter((n) => n.id !== id) }));
+  }, []);
+
+  const noteToTask = useCallback((id: string) => {
+    setState((s) => {
+      const n = s.notes.find((x) => x.id === id);
+      if (!n) return s;
+      return {
+        ...s,
+        notes: s.notes.filter((x) => x.id !== id),
+        tasks: [
+          {
+            id: crypto.randomUUID(),
+            title: n.text.slice(0, 120),
+            projectId: null,
+            done: false,
+            createdAt: new Date().toISOString(),
+            day: todayKey(),
+            priority: "normal" as Priority,
+          },
+          ...s.tasks,
+        ],
+      };
+    });
+  }, []);
+
+  const setDailyGoal = useCallback((minutes: number) => {
+    setState((s) => ({ ...s, settings: { ...s.settings, dailyGoalMinutes: minutes } }));
+  }, []);
+
+  const importState = useCallback((raw: string) => {
+    const parsed = JSON.parse(raw);
+    const base = emptyState();
+    setState({ ...base, ...parsed, settings: { ...base.settings, ...(parsed?.settings ?? {}) } });
+  }, []);
+
   const logSession = useCallback((minutes: number) => {
     setState((s) => ({
       ...s,
@@ -164,6 +251,14 @@ export function useMind() {
     addTask,
     toggleTask,
     removeTask,
+    cyclePriority,
+    addNote,
+    updateNote,
+    togglePinNote,
+    removeNote,
+    noteToTask,
+    setDailyGoal,
+    importState,
     logSession,
   };
 }
@@ -218,3 +313,20 @@ export function playDing() {
     /* ignore */
   }
 }
+
+/** تصدير نسخة احتياطية كملف JSON. */
+export function downloadBackup(state: MindState) {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `mymind-backup-${todayKey()}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export const PRIORITY_META: Record<Priority, { label: string; color: string }> = {
+  high: { label: "عالية", color: "oklch(0.72 0.14 25)" },
+  normal: { label: "عادية", color: "oklch(0.75 0.13 200)" },
+  low: { label: "منخفضة", color: "oklch(0.65 0.03 200)" },
+};
