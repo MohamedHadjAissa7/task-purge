@@ -313,3 +313,20 @@ export function playDing() {
     /* ignore */
   }
 }
+
+/** تصدير نسخة احتياطية كملف JSON. */
+export function downloadBackup(state: MindState) {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `mymind-backup-${todayKey()}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export const PRIORITY_META: Record<Priority, { label: string; color: string }> = {
+  high: { label: "عالية", color: "oklch(0.72 0.14 25)" },
+  normal: { label: "عادية", color: "oklch(0.75 0.13 200)" },
+  low: { label: "منخفضة", color: "oklch(0.65 0.03 200)" },
+};
