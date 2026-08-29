@@ -1,0 +1,43 @@
+{
+  "name": "MyMind — نظام الإنتاجية",
+  "short_name": "MyMind",
+  "description": "مشاريع الأسبوع، مهام اليوم، مؤقت بومودورو وإحصائيات الاستمرارية.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#0b1f24",
+  "background_color": "#0b1f24",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "مهام اليوم",
+      "short_name": "المهام",
+      "url": "/?view=tasks",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "مؤقت بومودورو",
+      "short_name": "المؤقت",
+      "url": "/?view=timer",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "مشاريع الأسبوع",
+      "short_name": "المشاريع",
+      "url": "/?view=projects",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "الإحصائيات",
+      "short_name": "الإحصائيات",
+      "url": "/?view=stats",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
