@@ -14,7 +14,217 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      focus_sessions: {
+        Row: {
+          created_at: string
+          day: string
+          id: string
+          minutes: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day?: string
+          id?: string
+          minutes: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          id?: string
+          minutes?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      habit_logs: {
+        Row: {
+          created_at: string
+          day: string
+          habit_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          habit_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          habit_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_logs_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "habits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habits: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notes: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          pinned: boolean
+          text: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          text: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          pinned?: boolean
+          text?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          daily_goal_minutes: number
+          display_name: string | null
+          email: string | null
+          id: string
+          theme: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          daily_goal_minutes?: number
+          display_name?: string | null
+          email?: string | null
+          id: string
+          theme?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          daily_goal_minutes?: number
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          theme?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          day: string
+          done: boolean
+          due_at: string | null
+          id: string
+          priority: string
+          project_id: string | null
+          subtasks: Json
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          day?: string
+          done?: boolean
+          due_at?: string | null
+          id?: string
+          priority?: string
+          project_id?: string | null
+          subtasks?: Json
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          day?: string
+          done?: boolean
+          due_at?: string | null
+          id?: string
+          priority?: string
+          project_id?: string | null
+          subtasks?: Json
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
