@@ -2,6 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { MyMindApp } from "@/components/mymind/MyMindApp";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    view: typeof search['view'] === "string" ? (search['view'] as string) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "MyMind — نظام الإنتاجية الشخصي" },

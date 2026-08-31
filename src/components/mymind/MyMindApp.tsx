@@ -6,6 +6,8 @@ import {
   Download,
   FolderKanban,
   ListChecks,
+  ListTree,
+  Repeat,
   StickyNote,
   Timer,
   LogOut,
@@ -18,6 +20,8 @@ import { TasksPanel } from "@/components/mymind/TasksPanel";
 import { FlipTimer } from "@/components/mymind/FlipTimer";
 import { StatsPanel } from "@/components/mymind/StatsPanel";
 import { NotesPanel } from "@/components/mymind/NotesPanel";
+import { HabitsPanel } from "@/components/mymind/HabitsPanel";
+import { SubtasksPanel } from "@/components/mymind/SubtasksPanel";
 import { CommandPalette, type CommandItem } from "@/components/mymind/CommandPalette";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "@tanstack/react-router";
@@ -26,6 +30,8 @@ const TABS = [
   { id: "stats", label: "الإحصائيات", icon: BarChart3 },
   { id: "timer", label: "المؤقت", icon: Timer },
   { id: "tasks", label: "المهام", icon: ListChecks },
+  { id: "subtasks", label: "تفاصيل المهام", icon: ListTree },
+  { id: "habits", label: "العادات", icon: Repeat },
   { id: "notes", label: "الملاحظات", icon: StickyNote },
   { id: "projects", label: "المشاريع", icon: FolderKanban },
 ] as const;
@@ -209,6 +215,26 @@ export function MyMindApp() {
               onRemove={mind.removeNote}
               onPin={mind.togglePinNote}
               onConvert={mind.noteToTask}
+            />
+          )}
+          {tab === "subtasks" && (
+            <SubtasksPanel
+              tasks={todayTasks}
+              projects={state.projects}
+              onAddSubtask={mind.addSubtask}
+              onToggleSubtask={mind.toggleSubtask}
+              onRemoveSubtask={mind.removeSubtask}
+              onSetDueAt={mind.setDueAt}
+              onToggleTask={mind.toggleTask}
+            />
+          )}
+          {tab === "habits" && (
+            <HabitsPanel
+              habits={state.habits}
+              logs={state.habitLogs}
+              onAdd={mind.addHabit}
+              onRemove={mind.removeHabit}
+              onToggle={mind.toggleHabit}
             />
           )}
           {tab === "timer" && <FlipTimer onComplete={mind.logSession} />}
