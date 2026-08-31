@@ -76,21 +76,27 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          period: string
           user_id: string
+          weekly_target: number
         }
         Insert: {
           color?: string
           created_at?: string
           id?: string
           name: string
+          period?: string
           user_id: string
+          weekly_target?: number
         }
         Update: {
           color?: string
           created_at?: string
           id?: string
           name?: string
+          period?: string
           user_id?: string
+          weekly_target?: number
         }
         Relationships: []
       }
