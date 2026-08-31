@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   Brain,
@@ -8,15 +8,19 @@ import {
   ListChecks,
   StickyNote,
   Timer,
-  Upload,
+  LogOut,
 } from "lucide-react";
-import { useMind, badgeFor, downloadBackup, todayKey } from "@/lib/mymind-store";
+import { badgeFor, downloadBackup, todayKey } from "@/lib/mymind-store";
+import { useMind } from "@/lib/mymind-cloud";
+import { useAuth } from "@/hooks/useAuth";
 import { ProjectsPanel } from "@/components/mymind/ProjectsPanel";
 import { TasksPanel } from "@/components/mymind/TasksPanel";
 import { FlipTimer } from "@/components/mymind/FlipTimer";
 import { StatsPanel } from "@/components/mymind/StatsPanel";
 import { NotesPanel } from "@/components/mymind/NotesPanel";
 import { CommandPalette, type CommandItem } from "@/components/mymind/CommandPalette";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "@tanstack/react-router";
 
 const TABS = [
   { id: "stats", label: "الإحصائيات", icon: BarChart3 },
@@ -35,22 +39,24 @@ function initialTab(): TabId {
 }
 
 export function MyMindApp() {
+  const { user, loading } = useAuth();
   const [tab, setTab] = useState<TabId>("tasks");
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const t = initialTab();
     if (t !== "tasks") setTab(t);
   }, []);
 
-  const mind = useMind();
+  const mind = useMind(user?.id);
   const { state } = mind;
 
   const today = todayKey();
   const todayTasks = state.tasks.filter((t) => t.day === today);
-  const weekMins = state.sessions.reduce((a, s) => a + s.minutes, 0);
-  const todayMins = state.sessions.filter((s) => s.day === today).reduce((a, s) => a + s.minutes, 0);
+  const weekMins = state.sessions.reduce((a: number, s) => a + s.minutes, 0);
+  const todayMins = state.sessions
+    .filter((s) => s.day === today)
+    .reduce((a: number, s) => a + s.minutes, 0);
   const goal = state.settings.dailyGoalMinutes;
   const goalPct = Math.min(100, Math.round((todayMins / Math.max(1, goal)) * 100));
 
@@ -58,7 +64,6 @@ export function MyMindApp() {
     () => [
       ...TABS.map((t) => ({ id: t.id, label: `الانتقال إلى ${t.label}`, hint: "تنقّل", run: () => setTab(t.id) })),
       { id: "backup", label: "تصدير نسخة احتياطية", hint: "بيانات", run: () => downloadBackup(state) },
-      { id: "restore", label: "استيراد نسخة احتياطية", hint: "بيانات", run: () => fileRef.current?.click() },
       {
         id: "goal",
         label: "تغيير هدف اليوم (بالدقائق)",
@@ -83,6 +88,21 @@ export function MyMindApp() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  if (loading) {
+    return <div dir="rtl" className="flex min-h-screen items-center justify-center text-muted-foreground">جارٍ التحميل…</div>;
+  }
+
+  if (!user) {
+    return (
+      <div dir="rtl" className="flex min-h-screen flex-col items-center justify-center gap-4">
+        <p className="text-lg font-semibold">سجّل الدخول لاستخدام MyMind</p>
+        <Link to="/auth" className="rounded-xl bg-primary px-6 py-3 text-sm text-primary-foreground">
+          تسجيل الدخول
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div dir="rtl" className="flex min-h-screen">
@@ -146,10 +166,10 @@ export function MyMindApp() {
               <Download className="size-3.5" /> تصدير
             </button>
             <button
-              onClick={() => fileRef.current?.click()}
+              onClick={() => void supabase.auth.signOut()}
               className="glass-soft flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-xs text-muted-foreground transition hover:text-foreground"
             >
-              <Upload className="size-3.5" /> استيراد
+              <LogOut className="size-3.5" /> خروج
             </button>
           </div>
 
@@ -159,23 +179,6 @@ export function MyMindApp() {
           </div>
         </div>
       </aside>
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="application/json"
-        className="hidden"
-        onChange={async (e) => {
-          const f = e.target.files?.[0];
-          if (!f) return;
-          try {
-            mind.importState(await f.text());
-          } catch {
-            window.alert("ملف غير صالح");
-          }
-          e.target.value = "";
-        }}
-      />
 
       <main className="flex-1 px-10 py-10">
         <div className="mx-auto max-w-6xl">
