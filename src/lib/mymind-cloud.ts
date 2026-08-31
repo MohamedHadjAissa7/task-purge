@@ -81,6 +81,8 @@ export function useMind(userId: string | undefined) {
         name: h['name'] as string,
         color: h['color'] as string,
         createdAt: h['created_at'] as string,
+        period: (h['period'] as string) === "weekly" ? "weekly" : "daily",
+        weeklyTarget: (h['weekly_target'] as number) ?? 7,
       })) as Habit[],
       habitLogs: ((habitLogs.data ?? []) as Row[]).map((l) => ({
         habitId: l['habit_id'] as string,
@@ -282,10 +284,12 @@ export function useMind(userId: string | undefined) {
 
   // ---- habits ----
   const addHabit = useCallback(
-    async (name: string) => {
+    async (name: string, period: "daily" | "weekly" = "daily", weeklyTarget = 7) => {
       if (!userId) return;
       const color = PROJECT_COLORS[state.habits.length % PROJECT_COLORS.length]!;
-      await supabase.from("habits").insert({ user_id: userId, name, color });
+      await supabase
+        .from("habits")
+        .insert({ user_id: userId, name, color, period, weekly_target: weeklyTarget });
       await refresh();
     },
     [userId, state.habits.length, refresh],

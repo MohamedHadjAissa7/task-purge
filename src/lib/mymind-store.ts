@@ -16,7 +16,15 @@ export type Task = {
 export type CompletedTask = { id: string; title: string; projectId: string | null; day: string };
 export type PomodoroSession = { id: string; minutes: number; day: string; at: string };
 export type Note = { id: string; text: string; color: string; createdAt: string; pinned: boolean };
-export type Habit = { id: string; name: string; color: string; createdAt: string };
+export type HabitPeriod = "daily" | "weekly";
+export type Habit = {
+  id: string;
+  name: string;
+  color: string;
+  createdAt: string;
+  period: HabitPeriod;
+  weeklyTarget: number;
+};
 export type HabitLog = { habitId: string; day: string };
 export type Settings = { dailyGoalMinutes: number; theme: "dark" | "light" };
 
