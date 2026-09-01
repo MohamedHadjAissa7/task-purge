@@ -28,14 +28,14 @@ function AuthPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (session) void navigate({ to: "/", search: { view: "projects" } });
+    if (session) void navigate({ to: "/app", search: { view: "projects" } });
   }, [session, navigate]);
 
   const signIn = async () => {
     setBusy(true);
     setError(null);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/?view=projects`,
+      redirect_uri: `${window.location.origin}/app?view=projects`,
     });
     if (result.error) {
       setError("تعذّر تسجيل الدخول، حاول مرة أخرى.");
@@ -43,7 +43,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    void navigate({ to: "/", search: { view: "projects" } });
+    void navigate({ to: "/app", search: { view: "projects" } });
   };
 
   return (

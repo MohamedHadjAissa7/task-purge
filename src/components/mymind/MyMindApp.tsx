@@ -11,6 +11,11 @@ import {
   StickyNote,
   Timer,
   LogOut,
+  Sun,
+  Moon,
+  ClipboardCheck,
+  Quote,
+  Home,
 } from "lucide-react";
 import { badgeFor, downloadBackup, todayKey } from "@/lib/mymind-store";
 import { useMind } from "@/lib/mymind-cloud";
@@ -25,6 +30,16 @@ import { SubtasksPanel } from "@/components/mymind/SubtasksPanel";
 import { CommandPalette, type CommandItem } from "@/components/mymind/CommandPalette";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "@tanstack/react-router";
+
+const QUOTES = [
+  "ابدأ صغيراً، لكن ابدأ اليوم.",
+  "التركيز عملة نادرة — أنفقها على ما يهم.",
+  "الاستمرارية تهزم الحماس المؤقت.",
+  "مهمة واحدة مكتملة أفضل من عشر مبدوءة.",
+  "الوقت الذي تستمتع بإضاعته ليس ضائعاً — لكن خطّط له.",
+  "قسّم الجبل إلى خطوات، ثم امشِ.",
+  "اليوم الذي تخطّط له، يخطّط لنجاحك.",
+];
 
 const TABS = [
   { id: "stats", label: "الإحصائيات", icon: BarChart3 },
@@ -56,6 +71,15 @@ export function MyMindApp() {
 
   const mind = useMind(user?.id);
   const { state } = mind;
+  const theme = state.settings.theme ?? "dark";
+  const [copied, setCopied] = useState(false);
+
+  // ميزة: تطبيق السمة الفاتحة/الداكنة على المستند
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("light", theme === "light");
+    return () => root.classList.remove("light");
+  }, [theme]);
 
   const today = todayKey();
   const todayTasks = state.tasks.filter((t) => t.day === today);
@@ -66,10 +90,83 @@ export function MyMindApp() {
   const goal = state.settings.dailyGoalMinutes;
   const goalPct = Math.min(100, Math.round((todayMins / Math.max(1, goal)) * 100));
 
+  // ميزة: اقتباس تحفيزي يتغيّر كل يوم
+  const quote = useMemo(() => {
+    const seed = today.split("-").reduce((a, n) => a + Number(n), 0);
+    return QUOTES[seed % QUOTES.length]!;
+  }, [today]);
+
+  // ميزة: نسخ تقرير اليوم كنص Markdown
+  const copyReport = async () => {
+    const lines = [
+      `# تقرير ${today}`,
+      `دقائق التركيز: ${todayMins}/${goal}`,
+      "",
+      "## المهام",
+      ...todayTasks.map((t) => `- [${t.done ? "x" : " "}] ${t.title}`),
+      "",
+      "## العادات",
+      ...state.habits.map(
+        (h) => `- ${h.name}: ${state.habitLogs.some((l) => l.habitId === h.id && l.day === today) ? "تم" : "لم يتم"}`,
+      ),
+    ];
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // ميزة: تذكيرات المتصفح للمهام المستحقة
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission === "default") void Notification.requestPermission();
+    const notified = new Set<string>();
+    const tick = () => {
+      if (Notification.permission !== "granted") return;
+      const now = Date.now();
+      for (const t of state.tasks) {
+        if (t.done || !t.dueAt || notified.has(t.id)) continue;
+        const diff = new Date(t.dueAt).getTime() - now;
+        if (diff <= 5 * 60 * 1000 && diff > -60 * 60 * 1000) {
+          notified.add(t.id);
+          new Notification("MyMind — موعد مهمة", { body: t.title });
+        }
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, [state.tasks]);
+
   const commands: CommandItem[] = useMemo(
     () => [
       ...TABS.map((t) => ({ id: t.id, label: `الانتقال إلى ${t.label}`, hint: "تنقّل", run: () => setTab(t.id) })),
       { id: "backup", label: "تصدير نسخة احتياطية", hint: "بيانات", run: () => downloadBackup(state) },
+      {
+        id: "theme",
+        label: "تبديل السمة (فاتح/داكن)",
+        hint: "مظهر",
+        run: () => mind.setTheme(state.settings.theme === "light" ? "dark" : "light"),
+      },
+      { id: "report", label: "نسخ تقرير اليوم", hint: "بيانات", run: () => void copyReport() },
+      ...state.tasks
+        .filter((t) => t.day === today)
+        .map((t) => ({ id: `task-${t.id}`, label: t.title, hint: "مهمة", run: () => setTab("tasks") })),
+      ...state.notes.map((n) => ({
+        id: `note-${n.id}`,
+        label: n.text.slice(0, 60),
+        hint: "ملاحظة",
+        run: () => setTab("notes"),
+      })),
+      ...state.projects.map((p) => ({
+        id: `project-${p.id}`,
+        label: p.name,
+        hint: "مشروع",
+        run: () => setTab("projects"),
+      })),
       {
         id: "goal",
         label: "تغيير هدف اليوم (بالدقائق)",
@@ -81,7 +178,8 @@ export function MyMindApp() {
         },
       },
     ],
-    [state, goal, mind],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state, goal, mind, today],
   );
 
   useEffect(() => {
@@ -164,6 +262,28 @@ export function MyMindApp() {
             </div>
           </div>
 
+          <div className="glass-soft flex items-start gap-2 rounded-2xl p-4 text-xs text-muted-foreground">
+            <Quote className="mt-0.5 size-3.5 shrink-0 text-primary" />
+            <p className="leading-relaxed">{quote}</p>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => mind.setTheme(theme === "light" ? "dark" : "light")}
+              aria-label="تبديل السمة"
+              className="glass-soft flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-xs text-muted-foreground transition hover:text-foreground"
+            >
+              {theme === "light" ? <Moon className="size-3.5" /> : <Sun className="size-3.5" />}
+              {theme === "light" ? "داكن" : "فاتح"}
+            </button>
+            <button
+              onClick={() => void copyReport()}
+              className="glass-soft flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-xs text-muted-foreground transition hover:text-foreground"
+            >
+              <ClipboardCheck className="size-3.5" /> {copied ? "تم النسخ" : "تقرير"}
+            </button>
+          </div>
+
           <div className="flex gap-2">
             <button
               onClick={() => downloadBackup(state)}
@@ -178,6 +298,13 @@ export function MyMindApp() {
               <LogOut className="size-3.5" /> خروج
             </button>
           </div>
+
+          <Link
+            to="/"
+            className="glass-soft flex items-center justify-center gap-2 rounded-xl py-2 text-xs text-muted-foreground transition hover:text-foreground"
+          >
+            <Home className="size-3.5" /> الصفحة التعريفية
+          </Link>
 
           <div className="glass-soft rounded-2xl p-4 text-center">
             <p className="text-xs text-muted-foreground">شارتك</p>
